@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Click the Target Game</title>
+    <style>
+        body {
+            background-color: #2d2d2d;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .game-container {
+            text-align: center;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .target {
+            width: 60px;
+            height: 60px;
+            background-color: #ff6347;
+            border-radius: 50%;
+            position: absolute;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: none;
+        }
+
+        .score {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .high-score {
+            font-size: 1.5em;
+            margin-top: 10px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .timer {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        .difficulty-selector {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .difficulty-selector button {
+            padding: 10px 20px;
+            margin: 0 10px;
+            font-size: 1em;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #ff6347;
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        .difficulty-selector button:hover {
+            background-color: #e5533d;
+        }
+
+        .end-screen {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .end-screen h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+        }
+
+        .end-screen p {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+        }
+
+        .end-screen button {
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #ff6347;
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        .end-screen button:hover {
+            background-color: #e5533d;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="difficulty-selector">
+            Select Difficulty:
+            <button onclick="startGame('easy')">Easy</button>
+            <button onclick="startGame('medium')">Medium</button>
+            <button onclick="startGame('hard')">Hard</button>
+            <button onclick="startGame('extreme')">Extreme</button>
+        </div>
+        <div class="timer">Time: <span id="timer">30</span> seconds</div>
+        <div class="score">Score: <span id="score">0</span></div>
+        <div class="high-score">High Score: <span id="high-score">0</span></div>
+        <div class="target" id="target"></div>
+    </div>
+
+    <div class="end-screen" id="end-screen">
+        <h1>Game Over</h1>
+        <p>Your Score: <span id="final-score">0</span></p>
+        <button onclick="restartGame()">Restart</button>
+    </div>
+
+    <script>
+        let score = 0;
+        let highScore = localStorage.getItem('highScore') || 0;
+        const target = document.getElementById('target');
+        const scoreDisplay = document.getElementById('score');
+        const highScoreDisplay = document.getElementById('high-score');
+        const timerDisplay = document.getElementById('timer');
+        const endScreen = document.getElementById('end-screen');
+        const finalScoreDisplay = document.getElementById('final-score');
+        let targetSize = 60;
+        let targetSpeed = 300;
+        let gameDuration = 30;  // 30 seconds
+        let timerInterval;
+
+        highScoreDisplay.textContent = highScore;
+
+        function getRandomPosition() {
+            const containerWidth = window.innerWidth - targetSize;
+            const containerHeight = window.innerHeight - targetSize;
+            const x = Math.floor(Math.random() * containerWidth);
+            const y = Math.floor(Math.random() * containerHeight);
+            return { x, y };
+        }
+
+        function moveTarget() {
+            const position = getRandomPosition();
+            target.style.left = position.x + 'px';
+            target.style.top = position.y + 'px';
+            target.style.transition = `all ${targetSpeed}ms ease`;
+        }
+
+        function startGame(difficulty) {
+            score = 0;
+            gameDuration = 30; // Reset time to 30 seconds
+            timerDisplay.textContent = gameDuration;
+            scoreDisplay.textContent = score;
+            endScreen.style.display = 'none';
+
+            if (difficulty === 'easy') {
+                targetSize = 80;
+                targetSpeed = 500;
+            } else if (difficulty === 'medium') {
+                targetSize = 60;
+                targetSpeed = 300;
+            } else if (difficulty === 'hard') {
+                targetSize = 40;
+                targetSpeed = 200;
+            } else if (difficulty === 'extreme') {
+                targetSize = 30;
+                targetSpeed = 100;
+            }
+
+            target.style.width = `${targetSize}px`;
+            target.style.height = `${targetSize}px`;
+            target.style.display = 'block';
+
+            moveTarget();
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                gameDuration--;
+                timerDisplay.textContent = gameDuration;
+
+                if (gameDuration <= 0) {
+                    clearInterval(timerInterval);
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            target.style.display = 'none';
+            finalScoreDisplay.textContent = score;
+            endScreen.style.display = 'flex';
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('highScore', highScore);
+                highScoreDisplay.textContent = highScore;
+            }
+        }
+
+        function restartGame() {
+            endScreen.style.display = 'none';
+            startGame('medium'); // Default to medium difficulty, can be adjusted as needed
+        }
+
+        target.addEventListener('click', () => {
+            score++;
+            scoreDisplay.textContent = score;
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('highScore', highScore);
+                highScoreDisplay.textContent = highScore;
+            }
+
+            moveTarget();
+        });
+    </script>
+</body>
+</html>
